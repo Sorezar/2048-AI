@@ -35,33 +35,42 @@ pygame.display.set_caption("2048")
 font = pygame.font.SysFont("arial", 40)
 score_font = pygame.font.SysFont("arial", 30)
 
+class Tile:
+    def __init__(self, value):
+        self.value = value
+
+    def get_color(self):
+        return TILE_COLORS.get(self.value, TILE_COLORS[2048])
+
+    def draw(self, x, y):
+        color = self.get_color()
+        rect = pygame.Rect(x * (TILE_SIZE + TILE_PADDING) + TILE_PADDING,
+                           y * (TILE_SIZE + TILE_PADDING) + TILE_PADDING + SCORE_HEIGHT,
+                           TILE_SIZE, TILE_SIZE)
+        pygame.draw.rect(screen, color, rect)
+        if self.value:
+            text = font.render(str(self.value), True, TILE_FONT_COLOR)
+            text_rect = text.get_rect(center=rect.center)
+            screen.blit(text, text_rect)
+
 class Game2048:
     def __init__(self):
-        self.grid = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
+        self.grid = [[Tile(0) for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
         self.score = 0
         self.spawn_tile()
         self.spawn_tile()
 
     def spawn_tile(self):
-        empty_tiles = [(i, j) for i in range(GRID_SIZE) for j in range(GRID_SIZE) if self.grid[i][j] == 0]
+        empty_tiles = [(i, j) for i in range(GRID_SIZE) for j in range(GRID_SIZE) if self.grid[i][j].value == 0]
         if empty_tiles:
             i, j = random.choice(empty_tiles)
-            self.grid[i][j] = 2 if random.random() < 0.9 else 4
+            self.grid[i][j] = Tile(2 if random.random() < 0.9 else 4)
 
     def draw(self):
         screen.fill(BACKGROUND_COLOR)
         for i in range(GRID_SIZE):
             for j in range(GRID_SIZE):
-                value = self.grid[i][j]
-                color = TILE_COLORS.get(value, TILE_COLORS[2048])
-                rect = pygame.Rect(j * (TILE_SIZE + TILE_PADDING) + TILE_PADDING,
-                                   i * (TILE_SIZE + TILE_PADDING) + TILE_PADDING + SCORE_HEIGHT,
-                                   TILE_SIZE, TILE_SIZE)
-                pygame.draw.rect(screen, color, rect)
-                if value:
-                    text = font.render(str(value), True, TILE_FONT_COLOR)
-                    text_rect = text.get_rect(center=rect.center)
-                    screen.blit(text, text_rect)
+                self.grid[i][j].draw(j, i)
 
         score_text = score_font.render(f"Score: {self.score}", True, SCORE_COLOR)
         screen.blit(score_text, (10, 10))
@@ -82,42 +91,44 @@ class Game2048:
     def move_up(self):
         moved = False
         for j in range(GRID_SIZE):
-            column = [self.grid[i][j] for i in range(GRID_SIZE)]
+            column = [self.grid[i][j].value for i in range(GRID_SIZE)]
             new_column, score = self.merge(column)
             moved |= column != new_column
             for i in range(GRID_SIZE):
-                self.grid[i][j] = new_column[i]
+                self.grid[i][j].value = new_column[i]
             self.score += score
         return moved
 
     def move_down(self):
         moved = False
         for j in range(GRID_SIZE):
-            column = [self.grid[i][j] for i in range(GRID_SIZE)]
+            column = [self.grid[i][j].value for i in range(GRID_SIZE)]
             new_column, score = self.merge(column[::-1])
             moved |= column != new_column[::-1]
             for i in range(GRID_SIZE):
-                self.grid[i][j] = new_column[::-1][i]
+                self.grid[i][j].value = new_column[::-1][i]
             self.score += score
         return moved
 
     def move_left(self):
         moved = False
         for i in range(GRID_SIZE):
-            row = self.grid[i]
+            row = [self.grid[i][j].value for j in range(GRID_SIZE)]
             new_row, score = self.merge(row)
             moved |= row != new_row
-            self.grid[i] = new_row
+            for j in range(GRID_SIZE):
+                self.grid[i][j].value = new_row[j]
             self.score += score
         return moved
 
     def move_right(self):
         moved = False
         for i in range(GRID_SIZE):
-            row = self.grid[i]
+            row = [self.grid[i][j].value for j in range(GRID_SIZE)]
             new_row, score = self.merge(row[::-1])
             moved |= row != new_row[::-1]
-            self.grid[i] = new_row[::-1]
+            for j in range(GRID_SIZE):
+                self.grid[i][j].value = new_row[::-1][j]
             self.score += score
         return moved
 
