@@ -1,6 +1,7 @@
 import pygame
 import sys
 import random
+import time
 
 # Couleurs
 BACKGROUND_COLOR = (189, 173, 159)
@@ -79,6 +80,7 @@ class Game2048:
         self.score = 0
         self.spawn_tile()
         self.spawn_tile()
+        self.last_move_time = time.time()
 
     def get_pixel_position(self, x, y):
         return (
@@ -177,9 +179,26 @@ class Game2048:
                 self.grid[i][j].update_position(self.get_pixel_position(j, i))
 
     def animate(self):
-        animation_duration = 0.5  # durée de l'animation en secondes
-        steps_per_second = 60  # nombre de steps par seconde
+        current_time = time.time()
+        time_since_last_move = current_time - self.last_move_time
+        self.last_move_time = current_time
+
+        # Adjust animation duration based on the time since the last move
+        base_duration = 0.1
+        animation_duration = max(0.01, base_duration - time_since_last_move * 0.05)
+        steps_per_second = 60
         total_steps = int(animation_duration * steps_per_second)
+        step_time = 1 / steps_per_second
+
+        if total_steps <= 1:
+            # If inputs are too fast, skip animation for instant move
+            for row in self.grid:
+                for tile in row:
+                    tile.finalize_position()
+            self.draw()
+            pygame.display.update()
+            return
+
         for step in range(total_steps):
             alpha = step / total_steps
             for row in self.grid:
